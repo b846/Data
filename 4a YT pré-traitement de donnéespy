@@ -1,0 +1,247 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Feb 23 19:02:21 2020
+
+@author: b
+https://www.youtube.com/watch?v=OGWwzm304Xs&list=PLO_fdPEVlfKoHQ3Ua2NtDL4nmynQC8YiS&index=8
+
+1. PREPROCESSING
+Encodage: convertir des données qualitative en données numériques
+    Encodage ordinal: associe chaque catégorie ou classe d'une variable à une valeur décimale unique
+        -LabelEncoder(): encode chaque classe de la variable y en une valeur numérique
+        -OrdinalEncoder(): encode les catégories des variables X en valeurs numériques (0, n_classe-1)
+        inconvénient, d'un pt de vue arithmique, cela n'a pas de sens
+    Encodage OneHot(): chaque catégorie est représenté dans une colonne binaire
+    On décompose la variable initiale en plusieurs sous variable, créant autant de colonne que l'on a de catégories
+    Pb: on peut créer bcp de variables, mais cela ne va pas prendre tant de place, car nous avons une matrice creuse (Sparse Matrix)
+    On peut stocker une matrice creuse sous un format plus léger
+    Pb: il y a une erreur si on tombe sur une valeur jamais rencontré auparavant
+        -LabelBinarizer()
+        -MultiLabelBinarizer()
+        -OneHotEncoder()
+
+4. NORMALISATION: permettre sur une même échelle toutes ls variables quantitatives
+Il est indispensable de normaliser les données.
+Sans normalisation, il est plus difficile pour l'algorithme de converger.
+    -MinMaxScaler: transforme la variable de telle sorte à être comprise entre 0 et 1
+    soustrait par le min et divise par l'amplitude
+    -RobustScaler: n'est pas sensible aux outliers. On soustrait la médiane à notre données, avant de diviser Q3 - Q1
+    -StandardScaler: standardise chaque variable X, moyenne nulle, écart type égale à 1
+    -Normalizer: transforme les lignes du dataset (et non les colonnes)
+
+5. sklearn.preprocessing.PolynomialFeatures
+Feature Engineering
+permet de créer des variables polynomiales à partir de nos variables existantes
+Cela peut être utile de créer une nouvelle variable avec plusieurs variables
+PolynomialFeatures: permet de créer un modèle polynomiale de degrée 2 à partir d'une seule variable
+On peut aussi réfléchir à une combinaison polynomiale de plusieurs variables, ne pas oublier de les normaliser avant de les passer dans l'estimateur
+
+6. Transformation non linéaire
+Permet de traiter les données pour leur accorder une distribution plus normale ou gaussienne, 
+ce qui facilite l'apprentissage d'un certain nombre de modèles
+-PowerTransformer
+-QuantileTransformer
+
+7. Discrétisation
+Découper une variable continue en variable discrète.
+Ce type d'opération peut être très utile pour créer une catégorie dans une variable.
+Comme par exemple différentes types de catégories d'age
+-Binarizer: permet de créer 2 catégories selon 1 seuil défini
+KBinsDiscretizer: permet de découper en plus de 2 catégories
+
+8. Mon_Transformeur
+transformeur personalisable
+
+# 9. Estimateur composite
+# L'astuce est de regrouper le transformateur et l'estime dans un estimateur compostite avec un pipeline
+1. Une pipeline est simple à utiliser
+2. Evite d'avoir des fuites de données ou des données mal transformées
+3. Permet de faire des cross-validation
+
+Imputation: permet de remplacer les données manquantes
+Selection: utilise des tests, comme le test de Chi-2 pour sélectionner les variables
+Extraction: générer des nouvelles variables à partir d'informations cachées dans le dataset
+
+Dans le module preprocessing de scikit learn, on a des classes transfomers avec des majuscules et des fonctions mathématiques
+"""
+
+# transformer
+# Encodage ordinal:LabelEncoder
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import LabelEncoder
+
+X = np.array(['Chat',
+              'Chien',
+              'Chat',
+              'Oiseau'])
+
+transformer = LabelEncoder()
+transformer.fit(X)
+
+transformer.transform(X)
+
+# Encodage ordinal:OrdinalEncoder
+from sklearn.preprocessing import OrdinalEncoder
+
+X = np.array([['Chat', 'Poils'],
+             ['Chien', 'Poils'],
+             ['Chat', 'Poils'],
+             ['Oiseau', 'Plume']])
+
+encoder = OrdinalEncoder()
+encoder.fit_transform(X)
+
+
+# LabelBinarizer
+from sklearn.preprocessing import LabelBinarizer
+y = np.array(['chat', 'chien', 'chat', 'oiseau'])
+encoder = LabelBinarizer(sparse_output=True) #sparse_output: permet de compresser la matrice
+encoder.fit_transform(y)
+
+# OneHotEncoder
+from sklearn.preprocessing import OneHotEncoder
+encoder = OneHotEncoder()
+encoder.fit_transform(X)
+
+
+
+########################################
+#2. Normalisation
+#MinMaxScaler
+""" On encode les variables qualitatives
+On normalise les variables numériques"""
+from sklearn.preprocessing import MinMaxScaler, RobustScaler, StandardScaler
+X = np.array([[70],
+              [80],
+              [120]])
+scaler = MinMaxScaler()
+scaler.fit_transform(X)
+""" On ne perd pas d'information, car on garde les rapports"""
+
+#StandardScaler
+scaler = StandardScaler()
+scaler.fit_transform(X)
+
+#StandardScaler
+scaler = RobustScaler()
+scaler.fit_transform(X)
+
+
+############################
+#5. Polynomiale Feature
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
+X = np.linspace(0, 4, 100).reshape((100, 1))
+y = X**2 + 5*np.cos(X) + np.random.randn(100, 1)
+
+# régression linéaire
+plt.scatter(X, y) # Création d'un polynôme
+model = LinearRegression().fit(X, y)
+y_pred = model.predict(X)
+plt.plot(X, y_pred, c='r', lw=3)
+plt.show()
+
+# régression polynomaile
+plt.scatter(X, y) # Création d'un polynôme
+X_poly = PolynomialFeatures(3).fit_transform(X) # on transforme un vecteur en matrice représentant les coeffients d'un polynome
+model = LinearRegression().fit(X_poly, y)
+y_pred = model.predict(X_poly)
+plt.plot(X, y_pred, c='r', lw=3)
+plt.show()
+#Le modèle est beaucoup plus satisfaisant
+
+
+###################################
+#6. Transformation non-linéaire
+# PowerTransformer
+from sklearn.preprocessing import PowerTransformer
+
+np.random.seed(0)
+X = np.random.randn(100, 2) + np.random.randn(100, 2)
+X2 = PowerTransformer().fit_transform(X)
+
+plt.hist(X[:,0], bins=30, alpha=0.7, label='original')
+plt.hist(X2[:,0], bins=30, alpha=0.7, label='PowerTransformer')
+plt.legend()
+plt.show()
+
+
+##################################################
+#7. Discrétisation
+# Binarizer
+from sklearn.preprocessing import Binarizer, KBinsDiscretizer
+X = np.linspace(0, 5, 10).reshape((10, 1))
+X
+
+np.hstack((X, Binarizer(threshold=3).fit_transform(X))) #hstack permet de redimensionner
+#Binarizer(threshold=3): tout ce qui sera inférieure à 3 sera considérée comme 0
+
+# KBinsDiscretizer
+X = np.linspace(0, 5, 10).reshape((10, 1))
+X
+KBinsDiscretizer(n_bins=6).fit_transform(X).toarray()
+
+
+####################################
+#8. FunctionTransformer, transformeur personnalisable
+from sklearn.preprocessing import FunctionTransformer
+X = np.linspace(1, 5, 10).reshape((-1, 1))
+Mon_transformer = FunctionTransformer(func = np.log1p,
+                                      inverse_func = np.expm1)
+
+Mon_transformer.fit_transform(X)
+
+
+######################################"
+#9. SYNTHESE transformer Estimator
+from sklearn.model_selection import GridSearchCV, train_test_split
+from sklearn.linear_model import SGDClassifier
+from sklearn.datasets import load_iris
+
+iris = load_iris()
+X = iris.data
+y = iris.target
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=5) #test_size avec 20%
+
+# Transformer
+scaler = StandardScaler()
+X_train_transformed = scaler.fit_transform(X_train)
+
+# Estimator
+model = SGDClassifier(random_state=0)
+model.fit(X_train_transformed, y_train)
+
+# Test
+X_test_transformed = scaler.transform(X_test)
+model.predict(X_test_transformed)
+
+# PIPELINE
+# L'astuce est de regrouper le transformateur et l'estime dans un estimateur compostite
+from sklearn.pipeline import make_pipeline
+
+model = make_pipeline(StandardScaler(),
+                      SGDClassifier())
+model.fit(X_train, y_train)
+model.predict(X_test)
+
+
+# GridSearchCV
+from sklearn.model_selection import GridSearchCV
+
+model = make_pipeline(PolynomialFeatures(),
+                    StandardScaler(),
+                    SGDClassifier(random_state=0))
+
+params = {
+        'polynomialfeatures__degree': [2, 3, 4],
+        'sgdclassifier__penalty': ['l1', 'l2']
+        }
+
+grid = GridSearchCV(model, param_grid=params, cv=4)
+
+grid.fit(X_train, y_train)
+grid.best_estimator_
+grid.best_params_
+grid.best_score_
